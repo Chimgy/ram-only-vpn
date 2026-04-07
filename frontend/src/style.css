@@ -217,3 +217,43 @@ input:focus {
   max-width: 280px;
   line-height: 1.5;
 }
+
+.pubkey-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+
+.pubkey-input::placeholder {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.pubkey-input:focus {
+  border-color: var(--accent);
+}
+
+.conf-box {
+  width: 100%;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--accent-glow);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-h);
+  white-space: pre;
+  overflow-x: auto;
+  text-align: left;
+  line-height: 1.7;
+}
