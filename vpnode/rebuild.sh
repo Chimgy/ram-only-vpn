@@ -19,7 +19,9 @@ sudo mksquashfs rootfs/ rootfs.squash -comp zstd -noappend
 
 echo "==> Signing..."
 HASH=$(sha256sum rootfs.squash | cut -d' ' -f1)
-SIG=$(printf '%s' "$HASH" | openssl pkeyutl -sign -inkey signing.key -rawin | base64 -w0)
+printf '%s' "$HASH" > /tmp/hash.bin
+SIG=$(openssl pkeyutl -sign -inkey keys/signing.key -rawin -in /tmp/hash.bin | base64 -w0)
+rm /tmp/hash.bin
 
 echo "==> Writing boot.json..."
 cat > boot.json << JSONEOF

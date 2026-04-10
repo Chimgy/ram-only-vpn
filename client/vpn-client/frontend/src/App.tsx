@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Connect, Disconnect, GetStatus } from '../wailsjs/go/main/App';
-import MapBackground from './components/MapBackground';
+import MapRippleBackground from './components/MapRippleBackground';
 import ConnectionCard from './components/ConnectionCard';
 
 type Status = { connected: boolean; tunnelIP: string };
@@ -58,13 +58,11 @@ export default function App() {
       </div>
 
       {/* World map */}
-      <MapBackground connected={status.connected} />
+      <MapRippleBackground />
 
-      {/* Cursor spotlight — repainted by browser when CSS vars change, not by React */}
-      <div className="cursor-spotlight pointer-events-none fixed inset-0 z-20" />
 
       {/* Card */}
-      <div className="relative z-30 min-h-screen flex items-center justify-center">
+      <div className="relative z-30 min-h-screen flex items-center justify-center pointer-events-none">
         <ConnectionCard
           status={status}
           userID={userID}

@@ -22,6 +22,10 @@ udhcpc -i eth0 -q   || fail "DHCP failed"
 MY_IP=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 log "Network up — $MY_IP"
 
+# sync clock so timestamps don't think its 1970....
+log "Syncing clock... actaully nah"
+# ntpd -d -q -n -p pool.ntp.org && log "Clock synced" || log "WARNING: NTP failed"
+
 # Step 2: WireGuard keypair into RAM
 # Fresh keypair generated every boot
 # Private key never written to disk (lives only in tmpfs)
@@ -57,11 +61,6 @@ cat > /run/wg/wg0.conf << WGEOF
 [Interface]
 PrivateKey = $(cat /run/wg/server.key)
 ListenPort = 51820
-
-[Peer]
-# Linux Mint dev machine
-PublicKey = qKBVC+Zqm8+bSNNIQdFNx7DLGhJtBnh6xnpu5y46xgU=
-AllowedIPs = 10.8.0.2/32
 WGEOF
 chmod 600 /run/wg/wg0.conf
 
@@ -90,6 +89,10 @@ echo 1 > /proc/sys/net/ipv4/ip_forward
     -i eth0 -o wg0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 log "NAT configured"
+
+# Step 6: Run the n-api go file that will handle dynamic connections
+export VPN_LAN_IP=$MY_IP  # needed in n-api (changes rn because im using dyn lan ip)
+/usr/local/bin/n-api &
 
 # Step 6: SSH
 # SSH host keys are baked into rootfs.squash at build time

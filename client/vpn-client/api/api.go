@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-const baseURL = "http://192.168.1.104:8080"
+const baseURL = "http://192.168.1.105:8080"
 
 type PeerResponse struct {
 	TunnelIP       string `json:"tunnel_ip"`
