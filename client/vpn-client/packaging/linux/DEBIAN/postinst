@@ -1,0 +1,9 @@
+#!/bin/bash
+# Post installation to grant ramon-vpn-client sudo permission to 
+# create .conf files (without terminal access sudo password can't be entered).
+WG_QUICK=$(which wg-quick)
+echo "# Allow ramon-client app to run wg-0quick commands without a password prompt (nothing nefarious <3)"
+echo "ALL ALL=(root) NOPASSWD: $WG_QUICK up /tmp/vpnclient.conf" > /etc/sudoers.d/vpnclient
+echo "ALL ALL=(root) NOPASSWD: $WG_QUICK down /tmp/vpnclient.conf" >> /etc/sudoers.d/vpnclient
+chmod 440 /etc/sudoers.d/vpnclient
+echo "Post installation complete, ramon-client app can now connect without password prompts"

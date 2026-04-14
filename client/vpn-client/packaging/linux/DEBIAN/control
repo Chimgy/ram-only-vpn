@@ -1,0 +1,7 @@
+Package: ram-on-client
+Version: 1.0.0
+Architecture: amd64
+Maintainer: charliejmarshall1234@gmail.com
+Section: net
+Priority: optional
+Description: Client-side Go application to connect to ramon-client application.
