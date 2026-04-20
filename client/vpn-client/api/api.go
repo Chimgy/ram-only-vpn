@@ -8,7 +8,7 @@ import (
 )
 
 // THIS IS NOT DYNAMIC RN HAVE TO CHANGE BEFORE EVERY SINGLE BUILD
-const baseURL = "http://192.168.1.111:8080"
+const baseURL = "http://192.168.1.101:9090"
 
 type PeerResponse struct {
 	TunnelIP       string `json:"tunnel_ip"`

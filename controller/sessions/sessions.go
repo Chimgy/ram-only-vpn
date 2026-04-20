@@ -23,20 +23,20 @@ func (s *SessionStore) Add(userID string, pubkey string, maxConcurrent int) bool
 
 }
 
-func (s *SessionStore) Remove(userID string, pubkey string) {
+// Removed USERID as this will not be sent from node json
+func (s *SessionStore) Remove(pubkey string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	existing := s.sessions[userID]
-	updated := []string{}
-	for _, pk := range existing {
-		if pk != pubkey { // keep all pubkeys that arent parsed to be removed and store them in updated
-			updated = append(updated, pk)
+	// find which user owns pubkey (need USERID to be map key for count )
+	for userID, pubkeys := range s.sessions {
+		for i, pk := range pubkeys {
+			if pk == pubkey {
+				s.sessions[userID] = append(pubkeys[:i], pubkeys[i+1:]...)
+				return
+			}
 		}
 	}
-
-	s.sessions[userID] = updated
-
 }
 
 func (s *SessionStore) Count(userID string) int {
@@ -51,6 +51,20 @@ func (s *SessionStore) Count(userID string) int {
 
 	return len(s.sessions[userID])
 }
+
+// func (s *SessionStore) FindUser(pubkey string) (string, bool) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
+
+// 	for userID, pubkeys := range s.sessions {
+// 		for _, pk := range pubkeys {
+// 			if pk == pubkey {
+// 				return userID, true
+// 			}
+// 		}
+// 	}
+// 	return "", false
+// }
 
 // constructor
 func NewSessionStore() *SessionStore {

@@ -6,7 +6,6 @@ import (
 	"controller/node"
 	"controller/sessions"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -40,20 +39,91 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, errorResponse{Error: msg})
 }
 
-func (conn *pgx.Conn, store *sessionsorsomething) handleConnect(userID, pubKey string) (bool, error) { // dop i unwrap the userID prior to this or is it still in json etc
-	// needs to post to node the pubkey + userID after validating the connection with validateuser
-	if !db.validateUser(conn, userID) { // the conn object is the connection? do we use db. or conn.?
-		return false, nil, fmt.Errorf("wtf have u done %w", err)
-	}
-	// .add checks this as well, but i guess good to do before commiting maybe also good to do both
-	if store.count() >= maxConcurrent {
-		return false, nil, fmt.ErrorF("too many concurrent connections ")
+func handleConnect(w http.ResponseWriter, r *http.Request,
+	conn *pgx.Conn, store *sessions.SessionStore,
+	n *node.Node, maxConcurrent int) {
+
+	var req addPeerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid JSON")
+		return
 	}
 
-	// now can forward to node if passed those checks
-	n.addPeer(pubKey, userID)
+	// Validate user first
+	valid, err := db.ValidateUser(conn, req.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "db error")
+		return
+	}
 
-	store.add()
+	if !valid {
+		writeError(w, http.StatusUnauthorized, "invalid or expired user. Please resubscribe to gain access or submit a ticket.")
+	}
+
+	// Check concurrent limit
+	if store.Count(req.UserID) >= maxConcurrent {
+		writeError(w, http.StatusTooManyRequests, "connection limit reached")
+		return
+	}
+
+	peer, err := n.AddPeer(req.PubKey, req.UserID)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "node error")
+		return
+	}
+
+	store.Add(req.UserID, req.PubKey, maxConcurrent)
+
+	// return connection config info for user to connect to
+	writeJSON(w, http.StatusOK, addPeerResponse{
+		TunnelIP:       peer.TunnelIP,
+		ServerPubkey:   peer.ServerPubkey,
+		ServerEndpoint: peer.ServerEndpoint,
+	})
+}
+
+//  ACTUALLY DON't NEED THIS RIGHT NOW -- will keep it for now, cos it was a bitch to write -- just in case
+// func handleDisconnect(w http.ResponseWriter, r *http.Request,
+// 	store *sessions.SessionStore, n *node.Node) {
+// 		var req addPeerRequest
+
+// 		// They tried disconnecting but sent an unreadable json packet
+// 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// 			writeError(w, http.StatusBadRequest, "Invalid JSON")
+// 			return
+// 		}
+
+// 		// Check if the person disconnecting is actually connected first
+// 		// valid, err := db.ValidateUser(conn, req.UserID) they will not be connected if user doesnt exist redundant check
+
+// 		if store.Count(req.UserID) == 0 {
+// 			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+// 			return
+// 		}
+
+// 		err := n.RemovePeer(req.PubKey)
+// 		if err != nil {
+// 			log.Printf("RemovePeer Failed: %v", err)
+// 			// Don't return need to remove the session store still
+// 		}
+
+// 		// after removing peer THEN we remove from concurrent connections (race conditions idk, but this order gives ME the benefit of the doubt)
+// 		store.Remove(req.UserID, req.PubKey)
+// 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+// 	}
+
+// don't need access to node anymore
+func handlePeerDisconnected(w http.ResponseWriter, r *http.Request, store *sessions.SessionStore) {
+	// jsons from the n-api on disconnection will be handled in this function
+	var req addPeerRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid Json sent from node")
+		return
+	}
+	// only sends pubKey NO USER_ID CANNOT COUNT
+	store.Remove(req.PubKey)
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func main() {
@@ -69,17 +139,17 @@ func main() {
 
 	maxConcurrent := 2 // default
 	if val := os.Getenv("MAX_CONCURRENT"); val != "" {
-		if n, err := strconv.Atoi(val); err == nil {
-			maxConcurrent = n
+		if parsed, err := strconv.Atoi(val); err == nil {
+			maxConcurrent = parsed
 		}
 	}
 
 	http.HandleFunc("/connect", func(w http.ResponseWriter, r *http.Request) {
 		handleConnect(w, r, conn, store, n, maxConcurrent)
 	})
-	http.HandleFunc("/disconnect", func(w http.ResponseWriter, r *http.Request) {
-		handleDisconnect(w, r, store, n)
-	})
+	// http.HandleFunc("/disconnect", func(w http.ResponseWriter, r *http.Request) {
+	// 	handleDisconnect(w, r, store, n)
+	// })
 	http.HandleFunc("/peer/disconnected", func(w http.ResponseWriter, r *http.Request) {
 		handlePeerDisconnected(w, r, store)
 	})
