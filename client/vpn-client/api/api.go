@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// THIS IS NOT DYNAMIC RN HAVE TO CHANGE BEFORE EVERY SINGLE BUILD
+// Change to controller ip now instead of node
 const baseURL = "http://192.168.1.101:9090"
 
 type PeerResponse struct {
@@ -21,7 +21,7 @@ func Connect(publicKey, userID string) (PeerResponse, error) {
 		"public_key": publicKey,
 		"user_id":    userID,
 	})
-	resp, err := http.Post(baseURL+"/peer", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(baseURL+"/connect", "application/json", bytes.NewReader(body))
 	if err != nil {
 		return PeerResponse{}, fmt.Errorf("POST /peer: %w", err)
 	}
@@ -38,14 +38,14 @@ func Connect(publicKey, userID string) (PeerResponse, error) {
 
 func Disconnect(publicKey string) error {
 	body, _ := json.Marshal(map[string]string{"public_key": publicKey})
-	req, _ := http.NewRequest(http.MethodDelete, baseURL+"/peer", bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, baseURL+"/disconnect", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("DELETE /peer: %w", err)
+		return fmt.Errorf("POST /disconnect: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("server returned %d", resp.StatusCode)
 	}
 	return nil
