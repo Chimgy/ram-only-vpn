@@ -8,7 +8,7 @@ import (
 )
 
 // Change to controller ip now instead of node
-const baseURL = "http://192.168.1.101:9090"
+const baseURL = "https://api.ramonlyvpn.net"
 
 type PeerResponse struct {
 	TunnelIP       string `json:"tunnel_ip"`
